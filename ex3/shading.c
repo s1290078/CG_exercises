@@ -114,11 +114,11 @@ static void BlinnPhongModel(GLfloat* pe, GLfloat* ne, GLfloat* out_color) {
 
     // ambient
     for (i = 0; i < 3; i++) {
-        out_color[i] += g_mat_amb[i] * g_light_amb[0][i];
+        out_color[i] += g_mat_amb[i] * g_light_amb[experiment][i];
     }
 
     // diffuse
-    sub(g_light_pos[0], pe, L);
+    sub(g_light_pos[experiment], pe, L);
     len = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
     for (int i = 0; i < 3; i++) {
         property += ne[i] * (L[i]/len);
@@ -149,7 +149,7 @@ static void BlinnPhongModel(GLfloat* pe, GLfloat* ne, GLfloat* out_color) {
             out_color[i] += fd[i];
         }
         else {
-            out_color[i] += g_mat_diff[i] * g_light_diff[0][i] * clamp(property, 0.f, 1.f);
+            out_color[i] += g_mat_diff[i] * g_light_diff[experiment][i] * clamp(property, 0.f, 1.f);
         }
     }
 
@@ -181,7 +181,7 @@ static void BlinnPhongModel(GLfloat* pe, GLfloat* ne, GLfloat* out_color) {
         cosPhai = clamp(cosPhai, 0.f, 1.f);
         mp = pow(cosPhai, g_mat_shiny);
         for (i = 0; i < 3; i++) {
-            out_color[i] += g_mat_spec[i] * g_light_spec[0][i] * mp;
+            out_color[i] += g_mat_spec[i] * g_light_spec[experiment][i] * mp;
         }
     } else {
         // specular(Blinn)
@@ -209,7 +209,7 @@ static void BlinnPhongModel(GLfloat* pe, GLfloat* ne, GLfloat* out_color) {
         cosTheta = fmax(cosTheta, 0.f);
         mb = pow(cosTheta, g_mat_shiny);
         for (i = 0; i < 3; i++) {
-            out_color[i] += g_mat_spec[i] * g_light_spec[0][i] * mb;
+            out_color[i] += g_mat_spec[i] * g_light_spec[experiment][i] * mb;
         }
     }
 
@@ -266,9 +266,6 @@ static void solidSphere(GLfloat r, int nu, int nv) {
                 glVertex3f(v11x, v11y, v11z);
                 glNormal3f(n10x, n10y, n10z);
                 glVertex3f(v10x, v10y, v10z);
-                if (experiment) {
-                    setLight2();
-                }
                 glEnd();
             }
             else {
@@ -424,29 +421,29 @@ static void setLight2() {
     GLfloat pos0[] = { 2.f, 2.f, 2.f, 2.f };
     GLfloat l_dir[] = {3.0f, 3.0f, 3.0f, 0.0f};
 
-    glLightfv(GL_LIGHT0, GL_AMBIENT, amb0);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diff0);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, spec0);
-    glLightfv(GL_LIGHT0, GL_POSITION, pos0);
-    glEnable(GL_LIGHT0);
+    glLightfv(GL_LIGHT1, GL_AMBIENT, amb0);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, diff0);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, spec0);
+    glLightfv(GL_LIGHT1, GL_POSITION, pos0);
+    glLightfv(GL_LIGHT1, GL_POSITION, l_dir);
 
     g_num_lights = 1;
-    g_light_amb[0][0] = amb0[0];
-    g_light_amb[0][1] = amb0[1];
-    g_light_amb[0][2] = amb0[2];
+    g_light_amb[1][0] = amb0[0];
+    g_light_amb[1][1] = amb0[1];
+    g_light_amb[1][2] = amb0[2];
 
-    g_light_diff[0][0] = diff0[0];
-    g_light_diff[0][1] = diff0[1];
-    g_light_diff[0][2] = diff0[2];
+    g_light_diff[1][0] = diff0[0];
+    g_light_diff[1][1] = diff0[1];
+    g_light_diff[1][2] = diff0[2];
 
-    g_light_spec[0][0] = spec0[0];
-    g_light_spec[0][1] = spec0[1];
-    g_light_spec[0][2] = spec0[2];
+    g_light_spec[1][0] = spec0[0];
+    g_light_spec[1][1] = spec0[1];
+    g_light_spec[1][2] = spec0[2];
 
-    g_light_pos[0][0] = pos0[0];
-    g_light_pos[0][1] = pos0[1];
-    g_light_pos[0][2] = pos0[2];
-    g_light_pos[0][3] = pos0[3];
+    g_light_pos[1][0] = pos0[0];
+    g_light_pos[1][1] = pos0[1];
+    g_light_pos[1][2] = pos0[2];
+    g_light_pos[1][3] = pos0[3];
 }
 
 static void display(void) {
@@ -520,17 +517,16 @@ static void keyboard(unsigned char key, int x, int y) {
 
         break;
 
-    case 'a':
-        // Changing lights
-        switchLight = 1 - switchLight;
-        if (switchLight) {
-            GLfloat l_dir[] = {3.0f, 3.0f, 3.0f, 0.0f};
-            glLightfv(GL_LIGHT0, GL_POSITION, l_dir);
-        }
-        break;
-
     case 'b':
         // Experiment with the objects material properties
+        // Turn on/off light
+        if (experiment){
+            glDisable(GL_LIGHT1);
+            glEnable(GL_LIGHT0);
+        } else{
+            glDisable(GL_LIGHT0);
+            glEnable(GL_LIGHT1);
+        }
         experiment = 1 - experiment;
         break;
 
@@ -554,6 +550,7 @@ static void init(void) {
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
 
     setLight();
+    setLight2();
 
     glEnable(GL_LIGHTING);
 }
